@@ -5,6 +5,45 @@ const githubService = require('../services/githubService');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../temp/uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  // Accept PDF and DOCX files
+  if (file.mimetype === 'application/pdf' || 
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.mimetype === 'application/msword') {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF and DOCX files are allowed'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+exports.uploadMiddleware = upload.single('resume');
 
 // @desc    Generate AI-tailored resume
 // @route   POST /api/resume/generate
@@ -281,3 +320,114 @@ exports.generatePDF = async (req, res) => {
     });
   }
 };
+
+// @desc    Upload resume file and extract text
+// @route   POST /api/resume/upload
+exports.uploadResume = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload a resume file'
+      });
+    }
+
+    const userId = req.user._id;
+    const file = req.file;
+
+    // Extract text based on file type
+    let extractedText = '';
+    
+    if (file.mimetype === 'application/pdf') {
+      // Extract text from PDF
+      const dataBuffer = fs.readFileSync(file.path);
+      const pdfData = await pdfParse(dataBuffer);
+      extractedText = pdfData.text;
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+               file.mimetype === 'application/msword') {
+      // Extract text from DOCX
+      const result = await mammoth.extractRawText({ path: file.path });
+      extractedText = result.value;
+    }
+
+    // Create resume document with uploaded file info
+    const resume = await Resume.create({
+      user: userId,
+      title: req.body.title || file.originalname,
+      uploadedFile: {
+        filename: file.filename,
+        originalName: file.originalname,
+        path: file.path,
+        mimetype: file.mimetype,
+        size: file.size,
+        uploadedAt: new Date()
+      },
+      extractedText: extractedText,
+      content: {
+        personalInfo: {
+          name: req.user.name,
+          email: req.user.email
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Resume uploaded successfully',
+      data: {
+        resumeId: resume._id,
+        filename: file.originalname,
+        extractedText: extractedText.substring(0, 500) + '...', // Preview
+        fullTextLength: extractedText.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ Resume Upload Error:', error);
+    // Clean up uploaded file if error occurs
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to upload resume'
+    });
+  }
+};
+
+// @desc    Get extracted text from uploaded resume
+// @route   GET /api/resume/:id/text
+exports.getResumeText = async (req, res) => {
+  try {
+    const resume = await Resume.findById(req.params.id);
+
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume not found'
+      });
+    }
+
+    // Check ownership
+    if (resume.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this resume'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        resumeId: resume._id,
+        extractedText: resume.extractedText || '',
+        uploadedFile: resume.uploadedFile
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+

@@ -32,6 +32,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Institution/College Information
+  institution: {
+    type: String,
+    trim: true
+  },
+  currentStatus: {
+    type: String,
+    enum: ['student', 'recent_graduate', 'experienced', 'career_switcher'],
+    default: 'student'
+  },
+  graduationYear: {
+    type: Number
+  },
+  location: {
+    type: String,
+    trim: true
+  },
   skills: [{
     type: String
   }],

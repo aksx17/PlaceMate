@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { FiLogOut, FiBriefcase, FiFileText, FiLayout, FiMessageSquare, FiMoon, FiSun, FiMenu, FiX } from 'react-icons/fi';
+import { FiLogOut, FiBriefcase, FiFileText, FiLayout, FiMessageSquare, FiMoon, FiSun, FiMenu, FiX, FiUsers } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -22,6 +22,7 @@ const Navbar = () => {
     { path: '/resume', label: 'Resume', icon: <FiFileText className="w-4 h-4" /> },
     { path: '/portfolio', label: 'Portfolio', icon: <FiLayout className="w-4 h-4" /> },
     { path: '/interview', label: 'Interview', icon: <FiMessageSquare className="w-4 h-4" /> },
+    { path: '/networking', label: 'Network', icon: <FiUsers className="w-4 h-4" /> },
   ];
 
   return (

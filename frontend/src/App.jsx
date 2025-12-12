@@ -13,6 +13,9 @@ import ResumeEdit from './pages/ResumeEdit';
 import Portfolio from './pages/Portfolio';
 import Interview from './pages/Interview';
 import Dashboard from './pages/Dashboard';
+import SkillGap from './pages/SkillGap';
+import NetworkingHelper from './pages/NetworkingHelper';
+import AlumniUpload from './pages/AlumniUpload';
 
 // Import components
 import Navbar from './components/common/Navbar';
@@ -48,6 +51,9 @@ function App() {
             <Route path="/resume/edit/:id" element={<ResumeEdit />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/interview" element={<Interview />} />
+            <Route path="/skill-gap/:jobId" element={<SkillGap />} />
+            <Route path="/networking" element={<NetworkingHelper />} />
+            <Route path="/alumni-upload" element={<AlumniUpload />} />
           </Route>
         </Routes>
         <ToastContainer position="top-right" autoClose={3000} />

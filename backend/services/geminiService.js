@@ -236,6 +236,332 @@ Return as JSON:
       throw new Error('Failed to extract job requirements');
     }
   }
+
+  /**
+   * Extract skills from job description with categorization
+   */
+  async extractSkillsFromJobDescription(jobDescription) {
+    const prompt = `
+Analyze this job description and extract all technical and soft skills with detailed categorization.
+
+JOB DESCRIPTION:
+${jobDescription}
+
+Categorize each skill as:
+- programming_language (e.g., Python, JavaScript, Java)
+- framework (e.g., React, Django, Spring)
+- tool (e.g., Git, Docker, Jenkins)
+- database (e.g., MongoDB, PostgreSQL, MySQL)
+- cloud (e.g., AWS, Azure, GCP)
+- soft_skill (e.g., Communication, Leadership)
+- other
+
+Mark importance as:
+- required (must-have skills explicitly mentioned)
+- preferred (nice-to-have or preferred qualifications)
+- nice_to_have (mentioned but not emphasized)
+
+Return as JSON:
+{
+  "skills": [
+    {
+      "name": "React",
+      "category": "framework",
+      "importance": "required"
+    }
+  ]
+}
+`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+      
+      return JSON.parse(jsonText);
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      throw new Error('Failed to extract skills from job description');
+    }
+  }
+
+  /**
+   * Extract skills from resume text
+   */
+  async extractSkillsFromResume(resumeText) {
+    const prompt = `
+Analyze this resume and extract all technical skills, tools, and technologies mentioned.
+
+RESUME:
+${resumeText}
+
+For each skill, try to determine the proficiency level based on context:
+- beginner (mentioned in coursework or just learning)
+- intermediate (used in projects or some experience)
+- advanced (extensive use, years of experience, or expert level)
+
+Return as JSON:
+{
+  "skills": [
+    {
+      "name": "Python",
+      "proficiencyLevel": "advanced",
+      "context": "3 years experience, built multiple production systems"
+    }
+  ]
+}
+`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+      
+      return JSON.parse(jsonText);
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      throw new Error('Failed to extract skills from resume');
+    }
+  }
+
+  /**
+   * Analyze skill gaps and provide recommendations
+   */
+  async analyzeSkillGaps(requiredSkills, userSkills, jobTitle, jobDescription) {
+    const prompt = `
+You are a career advisor. Analyze the skill gap between what a job requires and what the candidate has.
+
+JOB: ${jobTitle}
+JOB DESCRIPTION:
+${jobDescription}
+
+REQUIRED SKILLS:
+${JSON.stringify(requiredSkills, null, 2)}
+
+CANDIDATE'S SKILLS:
+${JSON.stringify(userSkills, null, 2)}
+
+Provide:
+1. Matching skills (skills the candidate already has)
+2. Missing skills (gaps to fill) with priority (high/medium/low)
+3. Overall match score (0-100)
+4. Top 5 online courses (prefer free resources like freeCodeCamp, Coursera free courses, edX, etc.)
+5. Top 5 YouTube playlists or channels for learning missing skills
+6. A detailed study plan (4-6 weeks) broken into phases
+7. 3-5 project recommendations to build that demonstrate the missing skills
+
+Return as JSON:
+{
+  "matchingSkills": [
+    {"name": "Python", "confidence": 95}
+  ],
+  "missingSkills": [
+    {
+      "name": "React Redux",
+      "category": "framework",
+      "importance": "required",
+      "priority": "high"
+    }
+  ],
+  "matchScore": 65,
+  "courses": [
+    {
+      "title": "React - The Complete Guide",
+      "platform": "Udemy",
+      "url": "https://www.udemy.com/...",
+      "duration": "40 hours",
+      "skill": "React",
+      "isPaid": true
+    }
+  ],
+  "videos": [
+    {
+      "title": "React Redux Tutorial for Beginners",
+      "channel": "Programming with Mosh",
+      "url": "https://youtube.com/...",
+      "skill": "React Redux",
+      "duration": "2 hours"
+    }
+  ],
+  "studyPlan": {
+    "totalDuration": "6 weeks",
+    "phases": [
+      {
+        "phase": 1,
+        "title": "React Fundamentals",
+        "duration": "2 weeks",
+        "skills": ["React", "JSX", "Components"],
+        "description": "Master React basics...",
+        "milestones": ["Build a todo app", "Understand hooks"]
+      }
+    ]
+  },
+  "projects": [
+    {
+      "title": "E-commerce Dashboard with React & Redux",
+      "description": "Build a full-featured admin dashboard...",
+      "skillsCovered": ["React", "Redux", "REST API"],
+      "difficulty": "intermediate",
+      "estimatedTime": "2-3 weeks",
+      "keyFeatures": ["Product management", "State management", "API integration"],
+      "technologies": ["React", "Redux", "Axios", "Chart.js"]
+    }
+  ]
+}
+
+IMPORTANT: For the "difficulty" field in projects, you MUST use ONLY one of these exact values:
+- "beginner" (for easy projects)
+- "intermediate" (for medium difficulty)
+- "advanced" (for hard/expert level)
+
+Do NOT use "easy", "medium", "hard" or any other values.
+`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+      
+      return JSON.parse(jsonText);
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      throw new Error('Failed to analyze skill gaps');
+    }
+  }
+
+  /**
+   * Generate personalized networking message
+   */
+  async generateNetworkingMessage(userProfile, contactProfile, purpose = 'referral') {
+    const prompt = `
+You are a professional networking coach. Generate a personalized LinkedIn/email connection message.
+
+USER PROFILE:
+- Name: ${userProfile.name}
+- Current Role/Status: ${userProfile.currentStatus || 'Student'}
+- Institution: ${userProfile.institution || 'N/A'}
+- Skills: ${userProfile.skills?.join(', ') || 'N/A'}
+- Target Role: ${userProfile.targetRole || 'N/A'}
+
+CONTACT PROFILE:
+- Name: ${contactProfile.name}
+- Current Role: ${contactProfile.currentRole}
+- Company: ${contactProfile.company}
+- Common Background: ${JSON.stringify(userProfile.commonalities || {})}
+
+PURPOSE: ${purpose}
+(Options: referral, mentorship, advice, informational_interview, job_opportunity)
+
+Generate 3 message templates:
+1. Short message (2-3 sentences) - for LinkedIn connection request
+2. Medium message (1 paragraph) - for LinkedIn message or email
+3. Detailed message (2-3 paragraphs) - for formal email
+
+Each message should:
+- Be professional yet personable
+- Mention common ground (same college, similar interests, etc.)
+- Be specific about what you're asking for
+- Show you've researched their background
+- Include a clear call-to-action
+- Be genuine and not overly flattering
+
+Return as JSON:
+{
+  "shortMessage": "Hi [Name], I'm a [your status] at [institution]...",
+  "mediumMessage": "Dear [Name], I hope this message finds you well...",
+  "detailedMessage": "Dear [Name], I hope this email finds you well...",
+  "subject": "Email subject line",
+  "tips": ["tip1", "tip2", "tip3"],
+  "doNots": ["don't1", "don't2"]
+}
+`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+      
+      return JSON.parse(jsonText);
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      throw new Error('Failed to generate networking message');
+    }
+  }
+
+  /**
+   * Generate networking strategy advice
+   */
+  async generateNetworkingStrategy(userProfile, targetRole, targetCompany) {
+    const prompt = `
+You are a career strategist. Create a networking strategy for a student/job seeker.
+
+USER PROFILE:
+- Name: ${userProfile.name}
+- Institution: ${userProfile.institution}
+- Skills: ${userProfile.skills?.join(', ')}
+- Experience: ${JSON.stringify(userProfile.experience || [])}
+
+TARGET:
+- Role: ${targetRole}
+- Company: ${targetCompany}
+
+Provide a comprehensive networking strategy with:
+1. Step-by-step action plan
+2. Who to reach out to (roles/positions)
+3. Best platforms to use
+4. Timeline (when to do what)
+5. Key talking points
+6. Follow-up strategy
+
+Return as JSON:
+{
+  "actionPlan": [
+    {
+      "step": 1,
+      "action": "...",
+      "timeline": "Week 1",
+      "details": "..."
+    }
+  ],
+  "targetContacts": [
+    {
+      "role": "Software Engineer",
+      "why": "They can provide insights about day-to-day work",
+      "priority": "high"
+    }
+  ],
+  "platforms": ["LinkedIn", "GitHub", "Twitter"],
+  "talkingPoints": ["point1", "point2"],
+  "followUpTips": ["tip1", "tip2"]
+}
+`;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+      
+      return JSON.parse(jsonText);
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      throw new Error('Failed to generate networking strategy');
+    }
+  }
 }
 
 module.exports = new GeminiService();

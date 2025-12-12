@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { jobsAPI } from '../services/api';
 import { toast } from 'react-toastify';
-import { FiMapPin, FiBriefcase, FiDollarSign, FiClock, FiBookmark, FiExternalLink, FiRefreshCw } from 'react-icons/fi';
+import { FiMapPin, FiBriefcase, FiDollarSign, FiClock, FiBookmark, FiExternalLink, FiRefreshCw, FiTarget, FiUsers } from 'react-icons/fi';
 
 const Jobs = () => {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
@@ -196,6 +198,18 @@ const Jobs = () => {
                     )}
 
                     <div className="flex gap-4">
+                      <button
+                        onClick={() => navigate(`/skill-gap/${job._id}`)}
+                        className="flex items-center text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium"
+                      >
+                        <FiTarget className="mr-1" /> Analyze Skills
+                      </button>
+                      <button
+                        onClick={() => navigate(`/networking?role=${encodeURIComponent(job.title)}&company=${encodeURIComponent(job.company)}`)}
+                        className="flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+                      >
+                        <FiUsers className="mr-1" /> Find Alumni
+                      </button>
                       <button
                         onClick={() => handleSaveJob(job._id)}
                         className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"

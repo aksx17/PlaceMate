@@ -185,6 +185,124 @@ class GitHubService {
       throw error;
     }
   }
+
+  /**
+   * Extract technical skills from GitHub repositories
+   * Returns structured skill data with proficiency indicators
+   */
+  async extractSkillsFromGitHub(username) {
+    try {
+      const userData = await this.getComprehensiveUserData(username);
+      const { repositories, skills, stats } = userData;
+
+      // Categorize technologies
+      const programmingLanguages = [];
+      const frameworks = [];
+      const tools = [];
+      const databases = [];
+
+      // Common framework keywords
+      const frameworkKeywords = ['react', 'vue', 'angular', 'django', 'flask', 'express', 'spring', 'laravel', 'rails', 'nextjs', 'nuxt'];
+      const databaseKeywords = ['mongodb', 'mysql', 'postgresql', 'redis', 'firebase', 'dynamodb', 'sqlite'];
+      const toolKeywords = ['docker', 'kubernetes', 'git', 'jenkins', 'webpack', 'babel', 'jest', 'graphql', 'rest-api'];
+
+      // Process languages
+      skills.languages.forEach(lang => {
+        programmingLanguages.push({
+          name: lang,
+          source: 'github',
+          proficiencyLevel: this.estimateProficiency(lang, repositories)
+        });
+      });
+
+      // Process topics and categorize them
+      skills.topics.forEach(topic => {
+        const lowerTopic = topic.toLowerCase();
+        
+        if (frameworkKeywords.some(fw => lowerTopic.includes(fw))) {
+          frameworks.push({
+            name: topic,
+            source: 'github',
+            proficiencyLevel: this.estimateProficiency(topic, repositories)
+          });
+        } else if (databaseKeywords.some(db => lowerTopic.includes(db))) {
+          databases.push({
+            name: topic,
+            source: 'github',
+            proficiencyLevel: this.estimateProficiency(topic, repositories)
+          });
+        } else if (toolKeywords.some(tool => lowerTopic.includes(tool))) {
+          tools.push({
+            name: topic,
+            source: 'github',
+            proficiencyLevel: this.estimateProficiency(topic, repositories)
+          });
+        } else {
+          tools.push({
+            name: topic,
+            source: 'github',
+            proficiencyLevel: 'intermediate'
+          });
+        }
+      });
+
+      // Combine all skills
+      const allSkills = [
+        ...programmingLanguages,
+        ...frameworks,
+        ...databases,
+        ...tools
+      ];
+
+      return {
+        skills: allSkills,
+        categorized: {
+          programmingLanguages,
+          frameworks,
+          databases,
+          tools
+        },
+        projects: repositories.slice(0, 10).map(repo => ({
+          name: repo.name,
+          description: repo.description,
+          technologies: [repo.language, ...repo.languages, ...repo.topics].filter(Boolean),
+          url: repo.url,
+          stars: repo.stars
+        }))
+      };
+    } catch (error) {
+      console.error('GitHub Skills Extraction Error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Estimate proficiency level based on repository usage
+   */
+  estimateProficiency(technology, repositories) {
+    const relatedRepos = repositories.filter(repo => {
+      const techLower = technology.toLowerCase();
+      return (
+        repo.language?.toLowerCase() === techLower ||
+        repo.languages?.some(l => l.toLowerCase() === techLower) ||
+        repo.topics?.some(t => t.toLowerCase().includes(techLower)) ||
+        repo.description?.toLowerCase().includes(techLower)
+      );
+    });
+
+    const repoCount = relatedRepos.length;
+    const totalStars = relatedRepos.reduce((sum, repo) => sum + repo.stars, 0);
+
+    // Determine proficiency based on usage
+    if (repoCount >= 5 || totalStars >= 10) {
+      return 'advanced';
+    } else if (repoCount >= 2) {
+      return 'intermediate';
+    } else {
+      return 'beginner';
+    }
+  }
 }
 
 module.exports = new GitHubService();
+

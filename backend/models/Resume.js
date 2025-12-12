@@ -78,6 +78,19 @@ const resumeSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // File upload support
+  uploadedFile: {
+    filename: String,
+    originalName: String,
+    path: String,
+    mimetype: String,
+    size: Number,
+    uploadedAt: Date
+  },
+  // Extracted text from uploaded file
+  extractedText: {
+    type: String
+  },
   pdfUrl: String,
   version: {
     type: Number,

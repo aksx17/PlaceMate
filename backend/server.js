@@ -12,6 +12,9 @@ const jobRoutes = require('./routes/jobs');
 const resumeRoutes = require('./routes/resume');
 const portfolioRoutes = require('./routes/portfolio');
 const interviewRoutes = require('./routes/interview');
+const skillGapRoutes = require('./routes/skillGap');
+const networkingRoutes = require('./routes/networking');
+const alumniRoutes = require('./routes/alumni');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -47,6 +50,9 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/interview', interviewRoutes);
+app.use('/api/skill-gap', skillGapRoutes);
+app.use('/api/networking', networkingRoutes);
+app.use('/api/alumni', alumniRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
